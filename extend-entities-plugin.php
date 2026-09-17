@@ -6,50 +6,58 @@
  */
 
 /*
- * The script module providing the JavaScript half of the `reading_time`
- * field (`getValue` and `render`). It is only registered here, not enqueued:
- * Gutenberg adds the module of every declared field to the import map and
- * the editor imports it on demand.
+ * The fields added to Pages. Registering them is all it takes for them to
+ * reach the view config endpoint and the editor.
+ *
+ * The `reading_time` field has a JavaScript half (`getValue` and `render`)
+ * provided by a script module registered for the entity along with the
+ * fields: `gutenberg_register_fields()` takes its id and URL and registers
+ * it. It is not enqueued: Gutenberg adds the modules of the registered
+ * fields to the import map of the editor pages, where the editor imports
+ * them on demand.
  */
 add_action(
 	'init',
 	function () {
-		wp_register_script_module(
+		gutenberg_register_fields(
+			'postType',
+			'page',
+			array(
+				// A field that is plain data: no JavaScript involved.
+				array(
+					'id'            => 'menu_order',
+					'type'          => 'integer',
+					'label'         => __( 'Order', 'extend-entities' ),
+					'description'   => __( 'Position of the page among its siblings.', 'extend-entities' ),
+					'enableSorting' => false,
+					'filterBy'      => false,
+				),
+				// A field whose `getValue` and `render` come from a script module.
+				array(
+					'id'            => 'reading_time',
+					'type'          => 'integer',
+					'label'         => __( 'Reading time', 'extend-entities' ),
+					'enableSorting' => false,
+					'filterBy'      => false,
+					'readOnly'      => true,
+				),
+			),
 			'extend-entities/reading-time-field',
-			plugins_url( 'fields/reading-time.js', __FILE__ ),
-			array(),
-			filemtime( __DIR__ . '/fields/reading-time.js' )
+			plugins_url( 'fields/reading-time.js', __FILE__ )
 		);
 	}
 );
 
+/*
+ * The view config filter still shapes how Pages are shown: the default
+ * layout and which fields the list and the Quick Edit form display.
+ */
 add_filter(
 	'get_entity_view_config_posttype_page',
 	function ( $data ) {
 		return $data->merge(
 			array(
-				'fields'       => array(
-					// A field that is plain data: no JavaScript involved.
-					array(
-						'id'            => 'menu_order',
-						'type'          => 'integer',
-						'label'         => __( 'Order', 'extend-entities' ),
-						'description'   => __( 'Position of the page among its siblings.', 'extend-entities' ),
-						'enableSorting' => false,
-						'filterBy'      => false,
-					),
-					// A field whose `getValue` and `render` come from a script module.
-					array(
-						'id'            => 'reading_time',
-						'type'          => 'integer',
-						'label'         => __( 'Reading time', 'extend-entities' ),
-						'enableSorting' => false,
-						'filterBy'      => false,
-						'readOnly'      => true,
-						'scriptModule'  => 'extend-entities/reading-time-field',
-					),
-				),
-				// Show them in the list and in the Quick Edit form.
+				// Show the registered fields in the list and in the Quick Edit form.
 				'default_view' => array(
 					'type'   => 'grid',
 					'fields' => array( 'reading_time', 'menu_order' ),

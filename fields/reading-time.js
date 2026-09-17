@@ -1,9 +1,9 @@
 /**
- * JavaScript half of the `reading_time` field.
+ * JavaScript half of the fields this plugin registers for Pages.
  *
- * The default export is a partial DataViews field: only what PHP cannot
- * serialize. Everything else (id, type, label, …) is declared on the server
- * and takes precedence over what is exported here.
+ * The default export maps field ids to a partial DataViews field: only what
+ * PHP cannot serialize. Everything else (id, type, label, …) is declared on
+ * the server and takes precedence over what is exported here.
  *
  * No build step: script modules cannot import the `@wordpress/*` scripts,
  * so the classic `wp.*` globals the editor already loaded are used instead.
@@ -13,7 +13,7 @@ const { __, _n, sprintf } = window.wp.i18n;
 
 const WORDS_PER_MINUTE = 200;
 
-export default {
+const readingTime = {
 	getValue: ( { item } ) => {
 		const content =
 			typeof item.content === 'string'
@@ -39,4 +39,8 @@ export default {
 				  )
 		);
 	},
+};
+
+export default {
+	reading_time: readingTime,
 };
