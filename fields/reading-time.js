@@ -7,11 +7,15 @@
  *
  * No build step: script modules cannot import the `@wordpress/*` scripts,
  * so the classic `wp.*` globals the editor already loaded are used instead.
+ *
+ * The class names emitted by `render` are styled by `reading-time.css`,
+ * enqueued from PHP: a script module has no way to declare a stylesheet.
  */
 const { createElement } = window.wp.element;
 const { __, _n, sprintf } = window.wp.i18n;
 
 const WORDS_PER_MINUTE = 200;
+const LONG_READ_MINUTES = 10;
 
 const readingTime = {
 	getValue: ( { item } ) => {
@@ -27,9 +31,16 @@ const readingTime = {
 	},
 	render: ( { item, field } ) => {
 		const minutes = field.getValue( { item } );
+		const className = [
+			'extend-entities-reading-time',
+			minutes === 0 && 'is-empty',
+			minutes >= LONG_READ_MINUTES && 'is-long',
+		]
+			.filter( Boolean )
+			.join( ' ' );
 		return createElement(
 			'span',
-			{ style: { fontVariantNumeric: 'tabular-nums' } },
+			{ className },
 			minutes === 0
 				? __( 'Empty', 'extend-entities' )
 				: sprintf(

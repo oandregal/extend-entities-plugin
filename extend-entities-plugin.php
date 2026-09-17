@@ -70,3 +70,43 @@ add_filter(
 		);
 	}
 );
+
+/*
+ * The CSS half of the fields.
+ *
+ * A script module cannot declare a stylesheet, so the CSS is a classic
+ * style handle registered on `init` and enqueued wherever the fields can be
+ * displayed. That is a different hook per screen:
+ *
+ * - `enqueue_block_editor_assets` covers the post editor (post.php) and the
+ *   classic site editor (site-editor.php).
+ * - `site-editor-v2_init` covers the extensible site editor: it renders its
+ *   own document and exits on `admin_init`, before `admin_enqueue_scripts`
+ *   and `enqueue_block_editor_assets` fire, so a style must be enqueued from
+ *   its `{page}_init` action to be printed.
+ * - `site-editor-v2-wp-admin_init` is the same page when it renders inside
+ *   the wp-admin chrome.
+ *
+ * The stylesheet is printed on every load of those screens, whether or not
+ * a view showing the fields is ever opened: nothing ties it to the field or
+ * to the entity, unlike the script module, which the editor imports on
+ * demand.
+ */
+add_action(
+	'init',
+	function () {
+		wp_register_style(
+			'extend-entities-fields',
+			plugins_url( 'fields/reading-time.css', __FILE__ ),
+			array(),
+			filemtime( __DIR__ . '/fields/reading-time.css' )
+		);
+	}
+);
+
+function extend_entities_enqueue_field_styles() {
+	wp_enqueue_style( 'extend-entities-fields' );
+}
+add_action( 'enqueue_block_editor_assets', 'extend_entities_enqueue_field_styles' );
+add_action( 'site-editor-v2_init', 'extend_entities_enqueue_field_styles' );
+add_action( 'site-editor-v2-wp-admin_init', 'extend_entities_enqueue_field_styles' );

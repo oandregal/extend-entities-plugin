@@ -1,0 +1,32 @@
+/**
+ * Styles for the fields this plugin registers for Pages.
+ *
+ * Only fields with a JavaScript `render` can be targeted: it is the render
+ * that emits the class name. Neither DataViews nor DataForm add the field id
+ * to the markup, so a plain-data field such as `menu_order` offers nothing
+ * for a selector to hold on to.
+ */
+
+.extend-entities-reading-time {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 6px;
+	border-radius: 2px;
+	background: var(--wp-admin-theme-color, #3858e9);
+	color: #fff;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	line-height: 20px;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+.extend-entities-reading-time.is-empty {
+	background: #949494;
+}
+
+/* Long reads stand out. */
+.extend-entities-reading-time.is-long {
+	background: #cc1818;
+}
