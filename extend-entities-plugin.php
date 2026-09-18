@@ -112,6 +112,37 @@ add_action(
 function extend_entities_enqueue_field_styles() {
 	wp_enqueue_style( 'extend-entities-fields' );
 }
+// Hook to load styles for post and site editor.
 add_action( 'enqueue_block_editor_assets', 'extend_entities_enqueue_field_styles' );
+// Hook to load styles for site editor v2.
 add_action( 'site-editor-v2_init', 'extend_entities_enqueue_field_styles' );
+
+// Hook to load styles when the site editor v2 renders inside the wp-admin chrome
+// (site-editor-v2-wp-admin menu slug). The `enqueue_block_editor_assets` never fires.
+add_action(
+	'admin_menu',
+	function () {
+		$hook_suffix = add_submenu_page(
+			'themes.php',
+			__( 'Pages (embedded)', 'extend-entities' ),
+			__( 'Pages (embedded)', 'extend-entities' ),
+			'edit_theme_options',
+			'site-editor-v2-wp-admin',
+			'gutenberg_site_editor_v2_wp_admin_render_page'
+		);
+
+		if ( $hook_suffix ) {
+			add_action(
+				"load-$hook_suffix",
+				function () {
+					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					if ( empty( $_GET['p'] ) ) {
+						wp_safe_redirect( admin_url( 'admin.php?page=site-editor-v2-wp-admin&p=' . rawurlencode( '/types/page/list/all' ) ) );
+						exit;
+					}
+				}
+			);
+		}
+	}
+);
 add_action( 'site-editor-v2-wp-admin_init', 'extend_entities_enqueue_field_styles' );
