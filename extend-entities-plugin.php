@@ -85,7 +85,7 @@ add_action(
  *
  * A field whose value is computed, or whose rendering is custom, has a
  * JavaScript half: `getValue` and `render`, provided by a script module
- * (see `fields/reading-time.js`).
+ * (see `fields/page-fields.js`).
  *
  * The module is registered with `wp_register_script_module()`, where its
  * URL, dependencies, and version are declared, and its id is passed as the
@@ -102,9 +102,9 @@ add_action(
 	function () {
 		wp_register_script_module(
 			'extend-entities/page-fields',
-			plugins_url( 'fields/reading-time.js', __FILE__ ),
+			plugins_url( 'fields/page-fields.js', __FILE__ ),
 			array(),
-			filemtime( __DIR__ . '/fields/reading-time.js' )
+			filemtime( __DIR__ . '/fields/page-fields.js' )
 		);
 		gutenberg_register_fields(
 			'postType',
@@ -125,7 +125,7 @@ add_action(
 );
 
 /*
- * The CSS half of the field (see `fields/reading-time.css`).
+ * The CSS half of the field (see `fields/page-fields.css`).
  *
  * A script module cannot declare a stylesheet, so the CSS is a classic
  * style handle registered on `init` and enqueued wherever the field can be
@@ -150,9 +150,9 @@ add_action(
 	function () {
 		wp_register_style(
 			'extend-entities-fields',
-			plugins_url( 'fields/reading-time.css', __FILE__ ),
+			plugins_url( 'fields/page-fields.css', __FILE__ ),
 			array(),
-			filemtime( __DIR__ . '/fields/reading-time.css' )
+			filemtime( __DIR__ . '/fields/page-fields.css' )
 		);
 	}
 );
@@ -227,7 +227,7 @@ add_filter(
  * module applies to the field on top of the modules it already has, so the
  * JavaScript half is patched the same way, export by export. Below, the
  * `comment_status` field of Pages becomes sortable and gets a custom
- * `render` from `fields/reading-time.js` (the module of case 3, applying
+ * `render` from `fields/page-fields.js` (the module of case 3, applying
  * to one more field): a colored dot next to the label of the current
  * option. Everything else stays: the `elements` and the `radio` control of
  * the core definition, and the relabel of case 4, which runs after this.
