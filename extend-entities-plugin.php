@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Extend Entities
- * Description: Demonstrates the Gutenberg APIs to extend an entity (Pages): the view config filter, declarative fields, fields backed by JavaScript and CSS, and updating an existing field.
+ * Description: Demonstrates the Gutenberg APIs to extend an entity (Pages): the view config filter, declarative fields, fields backed by JavaScript and CSS, and updating an existing field by patching or re-registering it.
  * Requires Plugins: gutenberg
  */
 
@@ -214,6 +214,60 @@ add_filter(
 			1
 		);
 	}
+);
+
+/*
+ * =========================================================================
+ * Case 5: replace an existing field by re-registering it.
+ * =========================================================================
+ *
+ * The alternative to the filter of case 4: `gutenberg_register_fields()`
+ * with the id of an existing field. The fields of an entity are keyed by
+ * id, default fields first and registered ones after, so a registered field
+ * with the id of a default one takes its place, keeping its position. The
+ * same goes for a field another plugin registered: the last registration
+ * wins, so the priority of the `init` callback decides who does.
+ *
+ * Unlike the filter, the new definition replaces the old one wholesale, so
+ * every server-side property the field should keep must be repeated: a
+ * `type`, `Edit`, or `elements` left out is gone. Below, the core
+ * `filterBy` operators are dropped by declaring `filterBy => false`.
+ *
+ * The JavaScript half of a field is a different matter, since it never
+ * lives in the server definition. The editor imports every script module
+ * of the entity, the one of the core fields and the ones registered by
+ * plugins, and combines their exports field by field and property by
+ * property, the later modules winning; the server definition is then
+ * applied on top. So re-registering a field on its own does not touch its
+ * JavaScript, and leaving a property out of the definition cannot remove
+ * it: the core `render`, `getElements`, and `setValue` of `author` still
+ * apply below, so the column shows the author name, not the integer the
+ * record holds. To change a JavaScript property, export it for the field id
+ * from a module registered along with the field, e.g. an `author` entry with
+ * a `render` in `fields/reading-time.js` would replace the core one. This is
+ * what the filter cannot do, as it cannot register a module.
+ *
+ * Relabeling the field and dropping its filter could also have been done
+ * with the filter of case 4, since both are plain properties. The
+ * difference shows in how much has to be spelled out.
+ */
+add_action(
+	'init',
+	function () {
+		gutenberg_register_fields(
+			'postType',
+			'page',
+			array(
+				array(
+					'id'       => 'author',
+					'type'     => 'integer',
+					'label'    => __( 'Written by', 'extend-entities' ),
+					'filterBy' => false,
+				),
+			)
+		);
+	},
+	20
 );
 
 /*
