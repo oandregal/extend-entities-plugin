@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Extend Entities
- * Description: Demonstrates the Gutenberg APIs to extend an entity (Pages): the view config filter, declarative fields, and fields backed by JavaScript and CSS.
+ * Description: Demonstrates the Gutenberg APIs to extend an entity (Pages): the view config filter, declarative fields, fields backed by JavaScript and CSS, and updating an existing field.
  * Requires Plugins: gutenberg
  */
 
@@ -16,9 +16,11 @@
  *
  * The `get_entity_view_config_{kind}_{name}` filter receives a config
  * object whose `merge()` method deep-merges the given array into the
- * current config. The second argument is the depth of the merge: here `1`,
- * so `default_view.fields` replaces the previous list instead of being
- * appended to it.
+ * current config: a scalar replaces the current value and a list merges into
+ * the current list by member identity, so `default_view.fields` here appends
+ * to the fields the default view already shows (use `replace()` to pin a list
+ * to an exact set of members). The second argument is the schema version the
+ * patch is written against, currently `1`.
  *
  * This example makes Grid the default layout for Pages, and shows the two
  * fields registered below in the list and in the Quick Edit form. Without
@@ -163,6 +165,56 @@ add_action( 'enqueue_block_editor_assets', 'extend_entities_enqueue_field_styles
 add_action( 'site-editor-v2_init', 'extend_entities_enqueue_field_styles' );
 // Extensible site editor inside the wp-admin chrome.
 add_action( 'site-editor-v2-wp-admin_init', 'extend_entities_enqueue_field_styles' );
+
+/*
+ * =========================================================================
+ * Case 4: update an existing field.
+ * =========================================================================
+ *
+ * The fields of an entity live under the `fields` key of its view config,
+ * so the same filter as in case 1 can change one that already exists: the
+ * default fields Gutenberg derives from the post type `supports`
+ * (`author`, `comment_status`, …) and the fields other plugins registered.
+ *
+ * `merge()` matches a list member by its `id` and merges the given
+ * properties into it in place: the field keeps its position and every
+ * property that is not named, including the JavaScript half it gets from
+ * its script module (here the `render` and `Edit` of the core field).
+ *
+ * This example relabels the `comment_status` field of Pages and lets users
+ * hide it from the list, which the core definition does not allow.
+ *
+ * A property whose value is a list of maps without an `id`, such as
+ * `elements`, cannot be patched member by member: `merge()` appends to it.
+ * Use `replace()` to pin such a list to an exact set of members, or
+ * re-register the whole field.
+ *
+ * The alternative is calling `gutenberg_register_fields()` with the id of
+ * the existing field: the new definition replaces the old one wholesale, in
+ * the same position, so every property must be repeated, but it can also
+ * come with a script module that provides a new `render`. Since the
+ * properties declared on the server take precedence over the ones from the
+ * modules, and the modules of every registration are applied to every field
+ * by id, a re-registered core field still gets its JavaScript from core.
+ */
+add_filter(
+	'get_entity_view_config_posttype_page',
+	function ( $data ) {
+		return $data->merge(
+			array(
+				'fields' => array(
+					array(
+						'id'           => 'comment_status',
+						'label'        => __( 'Comments', 'extend-entities' ),
+						'description'  => __( 'Whether visitors can comment on the page.', 'extend-entities' ),
+						'enableHiding' => true,
+					),
+				),
+			),
+			1
+		);
+	}
+);
 
 /*
  * Supporting code for the last hook above: a submenu that renders the
