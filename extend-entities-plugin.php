@@ -10,15 +10,21 @@
  * reach the view config endpoint and the editor.
  *
  * The `reading_time` field has a JavaScript half (`getValue` and `render`)
- * provided by a script module registered for the entity along with the
- * fields: `gutenberg_register_fields()` takes its id and URL and registers
- * it. It is not enqueued: Gutenberg adds the modules of the registered
- * fields to the import map of the editor pages, where the editor imports
- * them on demand.
+ * provided by a script module. The module is registered with
+ * `wp_register_script_module()`, where its URL, dependencies, and version
+ * are declared, and `gutenberg_register_fields()` takes its id. It is not
+ * enqueued: Gutenberg adds the modules of the registered fields to the
+ * import map of the editor pages, where the editor imports them on demand.
  */
 add_action(
 	'init',
 	function () {
+		wp_register_script_module(
+			'extend-entities/page-fields',
+			plugins_url( 'fields/reading-time.js', __FILE__ ),
+			array(),
+			filemtime( __DIR__ . '/fields/reading-time.js' )
+		);
 		gutenberg_register_fields(
 			'postType',
 			'page',
@@ -42,8 +48,7 @@ add_action(
 					'readOnly'      => true,
 				),
 			),
-			'extend-entities/reading-time-field',
-			plugins_url( 'fields/reading-time.js', __FILE__ )
+			'extend-entities/page-fields'
 		);
 	}
 );
