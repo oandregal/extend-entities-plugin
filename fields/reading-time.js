@@ -3,7 +3,10 @@
  *
  * The default export maps field ids to a partial DataViews field: only what
  * PHP cannot serialize. Everything else (id, type, label, …) is declared on
- * the server and takes precedence over what is exported here.
+ * the server and takes precedence over what is exported here. The module
+ * applies to the fields it was registered with: `reading_time` (case 3) and
+ * `comment_status` (case 5), a core field whose `elements` and `Edit` are
+ * kept while its `render` is exported here.
  *
  * No build step: script modules cannot import the `@wordpress/*` scripts,
  * so the classic `wp.*` globals the editor already loaded are used instead.
@@ -52,6 +55,23 @@ const readingTime = {
 	},
 };
 
+const commentStatus = {
+	render: ( { item, field } ) => {
+		const value = field.getValue( { item } );
+		const option = ( field.elements ?? [] ).find(
+			( element ) => element.value === value
+		);
+		return createElement(
+			'span',
+			{
+				className: `extend-entities-comment-status is-${ value }`,
+			},
+			option ? option.label : value
+		);
+	},
+};
+
 export default {
 	reading_time: readingTime,
+	comment_status: commentStatus,
 };

@@ -30,3 +30,23 @@
 .extend-entities-reading-time.is-long {
 	background: #cc1818;
 }
+
+/* Case 5: the dot before the comment status label. */
+.extend-entities-comment-status::before {
+	content: '';
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	margin-right: 6px;
+	border-radius: 50%;
+	background: #757575;
+	vertical-align: middle;
+}
+
+.extend-entities-comment-status.is-open::before {
+	background: #00a32a;
+}
+
+.extend-entities-comment-status.is-closed::before {
+	background: #d63638;
+}

@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Extend Entities
- * Description: Demonstrates the Gutenberg APIs to extend an entity (Pages): the view config filter, declarative fields, fields backed by JavaScript and CSS, and updating an existing field by patching or re-registering it.
+ * Description: Demonstrates the Gutenberg APIs to extend an entity (Pages): the view config filter, declarative fields, fields backed by JavaScript and CSS, and patching or substituting an existing field.
  * Requires Plugins: gutenberg
  */
 
@@ -94,7 +94,8 @@ add_action(
  * the editor pages, where the editor imports them on demand.
  *
  * Calling `gutenberg_register_fields()` again for the same entity adds to
- * the fields registered in case 2; it does not replace them.
+ * the fields registered in case 2; a field with a new id is appended and a
+ * field with the id of an existing one patches it (see case 5).
  */
 add_action(
 	'init',
@@ -168,7 +169,7 @@ add_action( 'site-editor-v2-wp-admin_init', 'extend_entities_enqueue_field_style
 
 /*
  * =========================================================================
- * Case 4: update an existing field.
+ * Case 4: patch an existing field with the view config filter.
  * =========================================================================
  *
  * The fields of an entity live under the `fields` key of its view config,
@@ -179,23 +180,19 @@ add_action( 'site-editor-v2-wp-admin_init', 'extend_entities_enqueue_field_style
  * `merge()` matches a list member by its `id` and merges the given
  * properties into it in place: the field keeps its position and every
  * property that is not named, including the JavaScript half it gets from
- * its script module (here the `render` and `Edit` of the core field).
+ * its script modules.
  *
  * This example relabels the `comment_status` field of Pages and lets users
  * hide it from the list, which the core definition does not allow.
  *
  * A property whose value is a list of maps without an `id`, such as
  * `elements`, cannot be patched member by member: `merge()` appends to it.
- * Use `replace()` to pin such a list to an exact set of members, or
- * re-register the whole field.
+ * Use `replace()` to pin such a list to an exact set of members, or patch
+ * the field by registering it (case 5), which replaces a property wholesale.
  *
- * The alternative is calling `gutenberg_register_fields()` with the id of
- * the existing field: the new definition replaces the old one wholesale, in
- * the same position, so every property must be repeated, but it can also
- * come with a script module that provides a new `render`. Since the
- * properties declared on the server take precedence over the ones from the
- * modules, and the modules of every registration are applied to every field
- * by id, a re-registered core field still gets its JavaScript from core.
+ * The filter runs on every request, after the registered fields are
+ * collected, so it patches whatever the field is by then: a default, a
+ * patched one, or a substitute (case 6). It cannot attach a script module.
  */
 add_filter(
 	'get_entity_view_config_posttype_page',
@@ -218,42 +215,75 @@ add_filter(
 
 /*
  * =========================================================================
- * Case 5: replace an existing field by re-registering it.
+ * Case 5: patch an existing field by registering it.
  * =========================================================================
  *
- * The alternative to the filter of case 4: `gutenberg_register_fields()`
- * with the id of an existing field. The fields of an entity are keyed by
- * id, default fields first and registered ones after, so a registered field
- * with the id of a default one takes its place, keeping its position. The
- * same goes for a field another plugin registered: the last registration
- * wins, so the priority of the `init` callback decides who does.
+ * `gutenberg_register_fields()` with the id of an existing field patches it
+ * too: only `id` is required, the properties given are merged into the
+ * field, property by property, and it keeps its position. A property given
+ * replaces the current one wholesale, so this is how to swap `elements`.
  *
- * Unlike the filter, the new definition replaces the old one wholesale, so
- * every server-side property the field should keep must be repeated: a
- * `type`, `Edit`, or `elements` left out is gone. Below, the core
- * `filterBy` operators are dropped by declaring `filterBy => false`.
+ * Unlike the filter, a registration can come with a script module, and the
+ * module applies to the field on top of the modules it already has, so the
+ * JavaScript half is patched the same way, export by export. Below, the
+ * `comment_status` field of Pages becomes sortable and gets a custom
+ * `render` from `fields/reading-time.js` (the module of case 3, applying
+ * to one more field): a colored dot next to the label of the current
+ * option. Everything else stays: the `elements` and the `radio` control of
+ * the core definition, and the relabel of case 4, which runs after this.
  *
- * The JavaScript half of a field is a different matter, since it never
- * lives in the server definition. The editor imports every script module
- * of the entity, the one of the core fields and the ones registered by
- * plugins, and combines their exports field by field and property by
- * property, the later modules winning; the server definition is then
- * applied on top. So re-registering a field on its own does not touch its
- * JavaScript, and leaving a property out of the definition cannot remove
- * it: the core `render`, `getElements`, and `setValue` of `author` still
- * apply below, so the column shows the author name, not the integer the
- * record holds. To change a JavaScript property, export it for the field id
- * from a module registered along with the field, e.g. an `author` entry with
- * a `render` in `fields/reading-time.js` would replace the core one. This is
- * what the filter cannot do, as it cannot register a module.
- *
- * Relabeling the field and dropping its filter could also have been done
- * with the filter of case 4, since both are plain properties. The
- * difference shows in how much has to be spelled out.
+ * To swap a control instead, export an `Edit` component for the field; to
+ * change how a core field such as `author` renders while keeping its
+ * `getElements` and `setValue`, export a `render` for it. Nothing can be
+ * removed this way: see case 6 for that.
  */
 add_action(
 	'init',
 	function () {
+		gutenberg_register_fields(
+			'postType',
+			'page',
+			array(
+				array(
+					'id'            => 'comment_status',
+					'enableSorting' => true,
+				),
+			),
+			'extend-entities/page-fields'
+		);
+	}
+);
+
+/*
+ * =========================================================================
+ * Case 6: substitute an existing field.
+ * =========================================================================
+ *
+ * Patching (cases 4 and 5) can only add or replace properties: neither a
+ * server property nor a JavaScript export can be taken away, since the
+ * editor layers every module listed for the field. To start from scratch,
+ * unregister the field first: `gutenberg_unregister_fields()` drops its
+ * definition, default or registered, and detaches every module from it,
+ * the core one included.
+ *
+ * The registration that follows is then the whole field. Every property it
+ * should have must be declared, and the only JavaScript that applies is the
+ * module passed along, if any. Below, `author` becomes a plain integer:
+ * without the core `render` and `getElements`, the column shows the user id
+ * the record holds and the Quick Edit form offers a number control. To
+ * render it differently, register a module exporting an `author` entry with
+ * the `render` (and `Edit`, `getElements`, …) it needs.
+ *
+ * The fields of an entity are keyed by id, default fields first and
+ * registered ones after, so the substitute of a default field moves to the
+ * end of the list: it is a registered field now. Since another plugin may
+ * patch or substitute the same field, the priority of the `init` callbacks
+ * decides who has the last word; the substitution runs late for that.
+ */
+add_action(
+	'init',
+	function () {
+		gutenberg_unregister_fields( 'postType', 'page', array( 'author' ) );
 		gutenberg_register_fields(
 			'postType',
 			'page',
