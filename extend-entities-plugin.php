@@ -169,53 +169,7 @@ add_action( 'site-editor-v2-wp-admin_init', 'extend_entities_enqueue_field_style
 
 /*
  * =========================================================================
- * Case 4: patch an existing field with the view config filter.
- * =========================================================================
- *
- * The fields of an entity live under the `fields` key of its view config,
- * so the same filter as in case 1 can change one that already exists: the
- * default fields Gutenberg derives from the post type `supports`
- * (`author`, `comment_status`, …) and the fields other plugins registered.
- *
- * `merge()` matches a list member by its `id` and merges the given
- * properties into it in place: the field keeps its position and every
- * property that is not named, including the JavaScript half it gets from
- * its script modules.
- *
- * This example relabels the `comment_status` field of Pages and lets users
- * hide it from the list, which the core definition does not allow.
- *
- * A property whose value is a list of maps without an `id`, such as
- * `elements`, cannot be patched member by member: `merge()` appends to it.
- * Use `replace()` to pin such a list to an exact set of members, or patch
- * the field by registering it (case 5), which replaces a property wholesale.
- *
- * The filter runs on every request, after the registered fields are
- * collected, so it patches whatever the field is by then: a default, a
- * patched one, or a substitute (case 6). It cannot attach a script module.
- */
-add_filter(
-	'get_entity_view_config_posttype_page',
-	function ( $data ) {
-		return $data->merge(
-			array(
-				'fields' => array(
-					array(
-						'id'           => 'comment_status',
-						'label'        => __( 'Comments', 'extend-entities' ),
-						'description'  => __( 'Whether visitors can comment on the page.', 'extend-entities' ),
-						'enableHiding' => true,
-					),
-				),
-			),
-			1
-		);
-	}
-);
-
-/*
- * =========================================================================
- * Case 5: patch an existing field by registering it.
+ * Case 4: patch an existing field by registering it.
  * =========================================================================
  *
  * `gutenberg_register_fields()` with the id of an existing field patches it
@@ -256,10 +210,10 @@ add_action(
 
 /*
  * =========================================================================
- * Case 6: substitute an existing field.
+ * Case 5: substitute an existing field.
  * =========================================================================
  *
- * Patching (cases 4 and 5) can only add or replace properties: neither a
+ * Patching (case 4) can only add or replace properties: neither a
  * server property nor a JavaScript export can be taken away, since the
  * editor layers every module listed for the field. To start from scratch,
  * unregister the field first: `gutenberg_unregister_fields()` drops its
